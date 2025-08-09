@@ -62,4 +62,7 @@ The Hall of Fame showcasing top procrastinators.
 🌐 Live Demo
 Experience the app live at https://transcendent-belekoy-79f1ec.netlify.app.
 
+Made with ❤️ at TinkerHub Useless Projects
+
+Static Badge Static Badge
 
