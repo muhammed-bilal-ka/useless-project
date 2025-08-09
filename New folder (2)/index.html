@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The Madiyan</title>
+
+<!-- confetti lib -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+
+<style>
+  :root{
+    --bg:#071322; --card:#0f2030; --accent:#ff6f61; --accent2:#7df1c6; --muted:#98a6b3;
+    --glass:rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:Inter,system-ui,Arial;background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(17,32,50,0.55), transparent),
+    linear-gradient(180deg,var(--bg),#031421); color:#eaf3ff; display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:900px;background:linear-gradient(180deg,var(--card),rgba(255,255,255,0.01));border-radius:14px;padding:26px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+  h1{margin:0;font-size:24px}
+  .top-row{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:8px}
+  .small{color:var(--muted);font-size:13px}
+  .timer-box{background:var(--glass);padding:10px;border-radius:10px;text-align:center;min-width:170px}
+  .timer-big{font-size:22px;font-weight:700;color:var(--accent)}
+  .meta{font-size:12px;color:var(--muted);margin-top:10px}
+  .center{display:flex;flex-direction:column;align-items:center;margin:18px 0}
+  .percent{font-size:48px;font-weight:800;color:var(--accent);margin-bottom:6px}
+  .bar-outer{width:100%;height:40px;background:rgba(255,255,255,0.04);border-radius:999px;padding:4px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+  .bar-inner{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;transition:width 160ms linear;display:flex;align-items:center;justify-content:center;color:#042; font-weight:700}
+  .message{margin-top:12px;color:var(--muted);min-height:22px}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;justify-content:center}
+  button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit;padding:8px 12px;border-radius:10px;cursor:pointer}
+  button:hover{transform:translateY(-3px)}
+  .switch{position:relative;display:inline-block;width:46px;height:26px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#2d3a44;border-radius:26px;transition:.25s}
+  .slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;top:3px;background:white;border-radius:50%;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,0.45)}
+  .switch input:checked + .slider{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .switch input:checked + .slider:before{transform:translateX(20px)}
+  .tiny{font-size:12px;color:var(--muted)}
+  .layout{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-top:18px}
+  .side{background:var(--glass);padding:12px;border-radius:10px}
+  .ach-list{list-style:none;padding:0;margin:8px 0 0}
+  .ach-list li{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-bottom:8px;font-size:13px}
+  .toast-wrap{position:fixed;right:20px;top:20px;display:flex;flex-direction:column;gap:10px;z-index:9999}
+  .toast{background:#0b2230;padding:10px 14px;border-radius:10px;border-left:4px solid var(--accent);box-shadow:0 8px 30px rgba(0,0,0,0.5);min-width:220px}
+  .distraction{margin-top:8px;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;font-size:13px;color:var(--muted)}
+  .hof{margin-top:8px}
+  .hof li{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-bottom:6px;font-size:13px}
+  .badge{display:inline-block;background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;color:var(--muted);font-size:12px;margin-left:6px}
+  footer{margin-top:12px;color:var(--muted);font-size:12px;text-align:center}
+  @media(max-width:880px){.layout{grid-template-columns:1fr;}.side{order:2}}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>The Madiyan <span class="badge">Deluxe ✨</span></h1>
+    <div class="top-row">
+      <div class="timer-box">
+        <div class="small">Procrastination Timer</div>
+        <div class="timer-big" id="idleTimer">00:00</div>
+        <div class="tiny">Total idle this session: <span id="totalIdleSec">0s</span></div>
+      </div>
+      <div style="text-align:right">
+        <div class="small">Sarcasm Level</div>
+        <div style="margin-top:6px"><span id="sarcasmBadge" class="badge">Calm</span></div>
+        <div class="meta">Idle threshold: <strong>5s</strong>. Move to drain.</div>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="percent" id="percentText">0%</div>
+      <div class="bar-outer" aria-hidden="true">
+        <div class="bar-inner" id="barInner"> </div>
+      </div>
+      <div class="message" id="message">Start doing nothing to earn progress...</div>
+
+      <div class="controls">
+        <button id="resetBtn">Reset</button>
+        <label class="switch">
+          <input type="checkbox" id="chaosToggle">
+          <span class="slider"></span>
+        </label>
+        <span class="tiny">Chaos Mode</span>
+
+        <button id="hallBtn">Show Hall of Fame</button>
+        <button id="selfieBtn">Capture Selfie (100% only)</button>
+      </div>
+
+      <div class="distraction" id="distraction">Suggestion: Pretend you can smell productivity. Or don't.</div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="side">
+          <div class="small">Achievements</div>
+          <ul class="ach-list" id="achList">
+            <li>No achievements yet — become legendary.</li>
+          </ul>
+          <div style="margin-top:10px" class="small">Random popups will cheer (or mock) you as you progress.</div>
+        </div>
+
+        <div class="side" style="margin-top:12px">
+          <div class="small">Fake Productivity Graph</div>
+          <canvas id="fakeGraph" width="600" height="120" style="width:100%;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)"></canvas>
+          <div class="tiny" style="margin-top:8px">Graphically impressive and meaningfully meaningless.</div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="small">Hall of Fame <span class="tiny">(top idle streaks)</span></div>
+        <ol class="hof" id="hofList"></ol>
+
+        <div style="margin-top:12px">
+          <div class="small">Session Stats</div>
+          <div class="tiny">Total idle: <span id="totalIdleDisplay">0s</span></div>
+          <div class="tiny">Times reached 100%: <span id="times100">0</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>Made to help you avoid doing actual work. Proudly useless.</footer>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<script>
+/* ======= CONFIG ======= */
+const IDLE_THRESHOLD = 5000;      // ms idle before filling starts
+const FILL_RATE = 0.8;            // percent per second while idle
+const DRAIN_RATE = 1.6;           // percent per second while active
+const TICK_MS = 100;              // loop tick
+const RANDOM_CONFETTI_CHANCE = 0.02; // per tick while idle
+const DISTRACTIONS = [
+  "Google 'capybara pets' — for science.",
+  "Rearrange your icons by emotional significance.",
+  "Check if your houseplant misses you.",
+  "Open 3 new tabs, then close them in dramatic fashion.",
+  "Research the history of bubble wrap.",
+  "Make an overly elaborate tea ceremony."
+];
+const TOAST_MESSAGES = [
+  "NASA is calling — they want your procrastination strategy.",
+  "Time well wasted, 10/10.",
+  "You are a beacon of delightful delay.",
+  "Legendary avoidance: Keep it up.",
+  "History will write a footnote about you."
+];
+const ACHIEVEMENTS = [
+  {key:'ach_30', label:'Certified Time Waster', threshold:30},
+  {key:'ach_60', label:'Professional Procrastinator', threshold:60},
+  {key:'ach_120', label:'CEO of Doing Nothing', threshold:120}
+];
+/* ======================= */
+
+/* state */
+let percent = 0;
+let lastActivity = Date.now();
+let isIdle = false;
+let confettiFired = false;
+let chaosMode = false;
+let idleStart = null;
+let totalIdleSession = 0; // seconds
+let idleTimerSeconds = 0;
+let timesReached100 = 0;
+
+/* UI refs */
+const barInner = document.getElementById('barInner');
+const percentText = document.getElementById('percentText');
+const messageEl = document.getElementById('message');
+const resetBtn = document.getElementById('resetBtn');
+const chaosToggle = document.getElementById('chaosToggle');
+const distractionEl = document.getElementById('distraction');
+const achList = document.getElementById('achList');
+const toastWrap = document.getElementById('toastWrap');
+const idleTimerDisplay = document.getElementById('idleTimer');
+const totalIdleSec = document.getElementById('totalIdleSec');
+const totalIdleDisplay = document.getElementById('totalIdleDisplay');
+const hofList = document.getElementById('hofList');
+const percentDisplay = document.getElementById('percentText');
+const sarcasmBadge = document.getElementById('sarcasmBadge');
+const times100El = document.getElementById('times100');
+const graphCanvas = document.getElementById('fakeGraph');
+const selfieBtn = document.getElementById('selfieBtn');
+const hallBtn = document.getElementById('hallBtn');
+
+/* localStorage keys */
+const HOF_KEY = 'procr_hof';
+const ACH_KEY = 'procr_ach';
+const TIMES100_KEY = 'procr_times100';
+
+/* helpers */
+function formatTime(s){
+  const m = Math.floor(s/60).toString().padStart(2,'0');
+  const sec = Math.floor(s%60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
+}
+function now(){ return Date.now(); }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* initial render */
+renderUI();
+renderHOF();
+renderAchievements();
+
+/* activity listeners */
+['mousemove','keydown','wheel','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, ()=> {
+    lastActivity = now();
+    if(isIdle){
+      // leaving idle
+      isIdle = false;
+      if(idleStart){
+        const dur = Math.floor((now() - idleStart)/1000);
+        totalIdleSession += dur;
+        idleStart = null;
+      }
+    }
+  },{passive:true});
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    // treat as prolonged idle (reward)
+    lastActivity = now() - IDLE_THRESHOLD - 2000;
+  } else {
+    lastActivity = now();
+  }
+});
+
+chaosToggle.addEventListener('change', (e)=> chaosMode = e.target.checked);
+resetBtn.addEventListener('click', resetAll);
+selfieBtn.addEventListener('click', captureSelfie);
+hallBtn.addEventListener('click', ()=> {
+  alert('Hall of Fame: top idle streaks (localStorage). Check the side list!');
+});
+
+/* main loop */
+let graphData = [];
+setInterval(() => {
+  const nn = now();
+  const idleTime = nn - lastActivity;
+
+  if(idleTime >= IDLE_THRESHOLD){
+    if(!isIdle){ isIdle = true; idleStart = now(); }
+    // gradually fill
+    const inc = FILL_RATE * (TICK_MS/1000);
+    percent = Math.min(100, percent + inc);
+    // random confetti sometimes (useless)
+    if(Math.random() < RANDOM_CONFETTI_CHANCE || (chaosMode && Math.random() < 0.12)){
+      tinyConfetti();
+      showToast(rand(TOAST_MESSAGES));
+    }
+    // increment idle timer seconds for display
+    if(idleStart){
+      idleTimerSeconds = Math.floor((now() - idleStart)/1000);
+    }
+    // add distraction suggestion occasionally
+    if(Math.random() < 0.01) distractionEl.innerText = "Suggestion: " + rand(DISTRACTIONS);
+  } else {
+    // active => drain
+    if(isIdle){ isIdle = false; if(idleStart){ const dur = Math.floor((now() - idleStart)/1000); totalIdleSession += dur; idleStart = null; } }
+    const dec = DRAIN_RATE * (TICK_MS/1000);
+    percent = Math.max(0, percent - dec);
+    // gently change distraction to nudge user to work
+    if(Math.random() < 0.01) distractionEl.innerText = "Suggestion: Try... opening a new tab? Or not.";
+  }
+
+  // update UI & graph
+  renderUI();
+  pushGraphPoint(percent);
+
+  // Achievements check
+  checkAchievements();
+
+  // reached 100% handling
+  if(percent >= 100 && !confettiFired){
+    confettiFired = true;
+    timesReached100++;
+    localStorage.setItem(TIMES100_KEY, timesReached100);
+    times100El.innerText = timesReached100;
+    celebrateFull();
+    // store idle streak in hall of fame
+    if(idleTimerSeconds >= 1){
+      pushHOF(idleTimerSeconds);
+      idleTimerSeconds = 0;
+    }
+  }
+}, TICK_MS);
+
+/* UI functions */
+function renderUI(){
+  barInner.style.width = percent.toFixed(1) + '%';
+  percentText.textContent = Math.round(percent) + '%';
+  messageEl.textContent = sarcasmFor(percent);
+  totalIdleSec.textContent = `${Math.floor(totalIdleSession)}s`;
+  totalIdleDisplay.textContent = `${Math.floor(totalIdleSession)}s`;
+  idleTimerDisplay.textContent = formatTime(idleTimerSeconds);
+  updateSarcasmBadge(percent);
+}
+
+function sarcasmFor(p){
+  if(p < 25) return "Pace yourself, champ.";
+  if(p < 50) return "You're doing nothing... perfectly.";
+  if(p < 75) return "Inspirational levels of avoidance.";
+  if(p < 100) return "Almost there... to ultimate unproductivity.";
+  return "🎉 Delay Master!";
+}
+function updateSarcasmBadge(p){
+  if(p < 25) { sarcasmBadge.textContent = 'Calm'; sarcasmBadge.style.background='rgba(255,255,255,0.03)'; }
+  else if(p < 50) { sarcasmBadge.textContent = 'Impressive'; sarcasmBadge.style.background='linear-gradient(90deg,var(--accent),var(--accent2))'; }
+  else if(p < 75) { sarcasmBadge.textContent = 'Iconic'; sarcasmBadge.style.background='linear-gradient(90deg,var(--accent),#ffd66b)'; }
+  else if(p < 100) { sarcasmBadge.textContent = 'Mythic'; sarcasmBadge.style.background='linear-gradient(90deg,#ff7fa1,#7df1c6)'; }
+  else { sarcasmBadge.textContent = 'Delay Master'; sarcasmBadge.style.background='linear-gradient(90deg,#ffd66b,#7df1c6)'; }
+}
+
+/* Toasts */
+function showToast(text, ttl=3500){
+  const div = document.createElement('div');
+  div.className = 'toast';
+  div.textContent = text;
+  toastWrap.prepend(div);
+  setTimeout(()=>{ div.style.opacity = '0'; div.style.transform='translateX(20px)'; }, ttl-600);
+  setTimeout(()=>{ div.remove(); }, ttl);
+}
+
+/* confetti wrappers */
+function tinyConfetti(){
+  try {
+    confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 } });
+  } catch(e){}
+}
+function bigConfetti(){
+  try {
+    confetti({ particleCount: 260, spread: 160, origin: { y: 0.6 } });
+  } catch(e){}
+}
+
+/* celebration on full */
+function celebrateFull(){
+  showToast("You reached 100%! Delay Master unlocked.", 5000);
+  bigConfetti();
+  // tiny drumroll via WebAudio
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+    o.stop(ctx.currentTime + 0.5);
+  } catch(e){}
+  // trigger achievements
+  awardAchievementBySeconds(5); // silly immediate award
+  confettiFired = true;
+}
+
+/* achievements handling */
+function renderAchievements(){
+  const saved = JSON.parse(localStorage.getItem(ACH_KEY) || '{}');
+  achList.innerHTML = '';
+  let any = false;
+  ACHIEVEMENTS.forEach(a=>{
+    if(saved[a.key]){
+      const li = document.createElement('li'); li.textContent = `${a.label} — unlocked!`;
+      achList.appendChild(li); any = true;
+    }
+  });
+  if(!any) achList.innerHTML = '<li>No achievements yet — become legendary.</li>';
+}
+function awardAchievementBySeconds(secs){
+  const saved = JSON.parse(localStorage.getItem(ACH_KEY) || '{}');
+  ACHIEVEMENTS.forEach(a=>{
+    if(secs >= a.threshold && !saved[a.key]){
+      saved[a.key] = Date.now();
+      localStorage.setItem(ACH_KEY, JSON.stringify(saved));
+      renderAchievements();
+      showToast(`Achievement unlocked: ${a.label}`, 3800);
+    }
+  });
+}
+function checkAchievements(){
+  // check by the current idle streak length
+  if(idleStart){
+    const secs = Math.floor((now()-idleStart)/1000);
+    awardAchievementBySeconds(secs);
+  }
+}
+
+/* Hall of Fame (store top idle streaks) */
+function pushHOF(seconds){
+  if(!seconds || seconds < 1) return;
+  const hof = JSON.parse(localStorage.getItem(HOF_KEY) || '[]');
+  hof.push({t: Date.now(), sec: seconds});
+  hof.sort((a,b)=>b.sec-a.sec);
+  const top = hof.slice(0,10);
+  localStorage.setItem(HOF_KEY, JSON.stringify(top));
+  renderHOF();
+}
+function renderHOF(){
+  const hof = JSON.parse(localStorage.getItem(HOF_KEY) || '[]');
+  hofList.innerHTML = hof.length ? '' : '<li>No records yet. Be first!</li>';
+  hof.slice(0,5).forEach(entry=>{
+    const li = document.createElement('li');
+    const d = new Date(entry.t).toLocaleString();
+    li.textContent = `${entry.sec}s — ${d}`;
+    hofList.appendChild(li);
+  });
+}
+
+/* simple fake graph to look fancy */
+const gctx = graphCanvas.getContext('2d');
+function pushGraphPoint(p){
+  graphData.push(p);
+  if(graphData.length > 240) graphData.shift();
+  drawGraph();
+}
+function drawGraph(){
+  const w = graphCanvas.width, h = graphCanvas.height;
+  gctx.clearRect(0,0,w,h);
+  gctx.fillStyle = 'rgba(255,255,255,0.03)';
+  gctx.fillRect(0,0,w,h);
+  gctx.beginPath();
+  const step = w / Math.max(1, graphData.length-1);
+  graphData.forEach((v,i)=>{
+    const x = i*step;
+    const y = h - (v/100)*h;
+    if(i===0) gctx.moveTo(x,y); else gctx.lineTo(x,y);
+  });
+  gctx.strokeStyle = 'rgba(125,241,198,0.9)';
+  gctx.lineWidth = 2.5;
+  gctx.stroke();
+}
+
+/* Hall of Fame button & selfie (very silly) */
+function captureSelfie(){
+  if(percent < 100){ showToast('Selfie only unlocked at 100% — earn it!',2000); return; }
+  // capture a screenshot of the card
+  try {
+    html2canvas(document.querySelector('.card')).then(canvas=>{
+      const link = document.createElement('a');
+      link.download = 'procrastination-selfie.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Selfie saved — instant fame!',3000);
+    });
+  } catch(e){
+    showToast('Selfie not available (html2canvas missing).',3000);
+  }
+}
+
+/* reset everything */
+function resetAll(){
+  percent = 0; confettiFired = false; idleStart = null; totalIdleSession = 0; idleTimerSeconds = 0;
+  timesReached100 = 0; localStorage.removeItem(ACH_KEY); localStorage.removeItem(HOF_KEY);
+  renderUI(); renderAchievements(); renderHOF();
+  showToast('Reset successful. Back to avoiding work!',1600);
+}
+
+/* tiny confetti on click for fun */
+document.querySelector('.card').addEventListener('dblclick', ()=>{ tinyConfetti(); showToast("Double-click celebratory dust!",1200); });
+
+/* store times reached 100 in localStorage */
+function saveTimes100(){
+  localStorage.setItem(TIMES100_KEY, timesReached100);
+}
+times100El.textContent = localStorage.getItem(TIMES100_KEY) || '0';
+
+/* small utility: load html2canvas if user clicks selfie and lib isn't present */
+(function(){
+  window.html2canvas = window.html2canvas || null;
+  document.addEventListener('click', (e)=>{
+    if(e.target === selfieBtn && !window.html2canvas){
+      // dynamically load html2canvas from CDN
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = ()=>{ window.html2canvas = html2canvas; captureSelfie(); };
+      s.onerror = ()=> showToast('Failed to load selfie helper.',2000);
+      document.body.appendChild(s);
+    }
+  });
+})();
+
+/* small initial toasts and distractions to set the mood */
+setTimeout(()=> showToast('Welcome — perfect time to do nothing.',2500),800);
+setTimeout(()=> distractionEl.innerText = 'Suggestion: ' + rand(DISTRACTIONS),1200);
+
+/* keyboard shortcut: press "H" to view Hall of Fame quickly */
+document.addEventListener('keydown', (e)=> { if(e.key.toLowerCase()==='h') { alert('Hall of Fame — check the side panel!'); } });
+
+/* keyboard toggle chaos (C) */
+document.addEventListener('keydown', (e)=> { if(e.key.toLowerCase()==='c') { chaosToggle.checked = !chaosToggle.checked; chaosMode = chaosToggle.checked; showToast('Chaos toggled ' + (chaosMode?'ON':'OFF'),1200); } });
+
+</script>
+</body>
+</html>
