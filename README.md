@@ -1,21 +1,27 @@
 🧩 Project Name: The Madiyan 
 
 🔧 Team Name: Elite
+
 👥 Team Members: 2
+
 Member 1: Azim Firoz - Ilahia College of engineering and technology 
 
 Member 2: Bilal KA - Ilahia College of engineering and technology 
 
 📝 Project Overview
+
 The Madiyan is a whimsical web application designed to help users procrastinate in style. It offers a sarcastic and humorous take on productivity, providing a "Procrastination Timer" that tracks idle time and rewards users with random popups and achievements for doing absolutely nothing. The app features a fake productivity graph and a Hall of Fame to celebrate top procrastinators.
 
 🚨 The Problem (that doesn't exist)
+
 In a world obsessed with productivity, people often feel pressured to stay focused and efficient. This app addresses the non-existent issue of excessive productivity by encouraging users to embrace idleness and distraction.
 
 💡 The Solution (that nobody asked for)
+
 By providing a platform where doing nothing is the goal, The Madiyan Deluxe offers a playful escape from the constant hustle. Users can enjoy random popups, track their idle time, and even capture selfies to commemorate their procrastination achievements.
 
 🛠️ Technical Details
+
 Software:
 Languages Used: HTML, CSS, JavaScript
 
